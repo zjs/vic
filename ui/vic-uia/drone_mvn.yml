@@ -1,5 +1,5 @@
 branches:
-  - ui-integration-tests
+  - drone-issue-with-uitests
 
 #clone:
 #  path: github.com/jooskim/vic
@@ -21,7 +21,7 @@ build:
       - apt-get install -yq maven
       - pip install pexpect
       - cd /go/src
-      - git clone -b ui-integration-tests https://github.com/jooskim/vic
+      - git clone -b drone-issue-with-uitests https://github.com/vmware/vic
       - wget -nv $BINTRAY_DOWNLOAD_PATH$SDK_PACKAGE_ARCHIVE -O /tmp/$SDK_PACKAGE_ARCHIVE
       - tar --warning=no-unknown-keyword -xzf /tmp/$SDK_PACKAGE_ARCHIVE -C /tmp/
       - ant -f vic/ui/vic-ui/build-deployable.xml -Denv.VSPHERE_SDK_HOME=$ENV_VSPHERE_SDK_HOME -Denv.FLEX_HOME=$ENV_FLEX_SDK_HOME

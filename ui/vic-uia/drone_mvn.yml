@@ -1,0 +1,32 @@
+branches:
+  - ui-integration-tests
+
+#clone:
+#  path: github.com/jooskim/vic
+#  tags: true
+
+build:
+  vic-uia:
+    image: vmware-docker-ci-repo.bintray.io/integration/vic-test:1.9
+    pull: true
+    environment:
+      BUILD_PATH: vic/ui/vic-uia
+      TESTS_PATH: vic/tests/test-cases/Group13-VIC-UI
+      BINTRAY_DOWNLOAD_PATH: "https://bintray.com/vmware/vic-repo/download_file?file_path="
+      SDK_PACKAGE_ARCHIVE: "ui-sdk.tar.gz"
+      ENV_VSPHERE_SDK_HOME: "/tmp/sdk/vc_sdk_min"
+      ENV_FLEX_SDK_HOME: "/tmp/sdk/flex_sdk_min"
+    commands:
+      - apt-get update
+      - apt-get install -yq maven
+      - pip install pexpect
+      - cd /go/src
+      - git clone -b ui-integration-tests https://github.com/jooskim/vic
+      - wget -nv $BINTRAY_DOWNLOAD_PATH$SDK_PACKAGE_ARCHIVE -O /tmp/$SDK_PACKAGE_ARCHIVE
+      - tar --warning=no-unknown-keyword -xzf /tmp/$SDK_PACKAGE_ARCHIVE -C /tmp/
+      - ant -f vic/ui/vic-ui/build-deployable.xml -Denv.VSPHERE_SDK_HOME=$ENV_VSPHERE_SDK_HOME -Denv.FLEX_HOME=$ENV_FLEX_SDK_HOME
+      #- mvn install -f $BUILD_PATH/pom.xml
+      - cd $TESTS_PATH
+      - robot -C ansi 13-1-VIC-UI-Installer.robot
+      - robot -C ansi 13-2-VIC-UI-Uninstaller.robot
+      - robot -C ansi 13-3-VIC-UI-NGC-tests.robot

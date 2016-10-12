@@ -107,6 +107,12 @@ check_prerequisite () {
         cleanup
         exit 1
     fi
+
+    if [[ $(curl -v --head https://$VCENTER_IP -k 2>&1 | grep -i "could not resolve host") ]] ; then
+        echo "Error! Could not resolve the hostname. Please make sure you set VCENTER_IP correctly in the configuration file"
+        cleanup
+        exit 1
+    fi
 }
 
 parse_and_register_plugins () {
@@ -274,3 +280,4 @@ cleanup
 
 echo "--------------------------------------------------------------"
 echo "VIC UI registration was successful"
+echo ""

@@ -25,6 +25,12 @@ Login And Save Cookies
     ${rc}  ${output}=  Run And Return Rc And Output  curl -sk %{VIC-ADMIN}/authentication -XPOST -F username=%{TEST_USERNAME} -F password=%{TEST_PASSWORD} -D /tmp/cookies-%{VCH-NAME}
     Should Be Equal As Integers  ${rc}  0
 
+Get Container Logs
+    [Arguments]  ${vmName}
+    ${rc}  ${output}=  Run And Return Rc and Output  curl -sk %{VIC-ADMIN}/container-logs.tar.gz -b /tmp/cookies-%{VCH-NAME} | (cd /tmp; tar xvzf - ${vmName}/tether.debug ${vmName}/vmware.log)
+    Log  ${output}
+    Should Be Equal As Integers  ${rc}  0
+
 *** Test Cases ***
 Get Login Page
     ${rc}  ${output}=  Run And Return Rc And Output  curl -sk %{VIC-ADMIN}/authentication
@@ -106,8 +112,7 @@ Get Container Logs
     Should Be Equal As Integers  ${rc}  0
     Should Not Contain  ${output}  Error
     ${vmName}=  Get VM Display Name  ${container}
-    ${rc}  ${output}=  Run And Return Rc and Output  curl -sk %{VIC-ADMIN}/container-logs.tar.gz -b /tmp/cookies-%{VCH-NAME} | (cd /tmp; tar xvzf - ${vmName}/tether.debug ${vmName}/vmware.log)
-    Log  ${output}
+    Wait Until Keyword Succeeds  5x  10s  Get Container Logs  ${vmName}
     ${rc}  ${output}=  Run And Return Rc and Output  ls -l /tmp/${vmName}/vmware.log
     Should Be Equal As Integers  ${rc}  0
     ${rc}  ${output}=  Run And Return Rc and Output  ls -l /tmp/${vmName}/tether.debug

@@ -23,6 +23,7 @@
     "/": {
       "get": {
         "summary": "Show VIC metadata",
+        "description": "A `GET` request on the base resource will return a JSON object containing metadata including the version number of the service software and a list of known appliance ISOs.",
         "responses": {
           "200": { "$ref": "#/responses/metadata" }
         },
@@ -32,6 +33,7 @@
     "/version": {
       "get": {
         "summary": "Show VIC version information",
+        "description": "A `GET` request on the `version` sub-resource will return the version number of the service software.",
         "produces": [
           "text/plain"
         ],
@@ -42,9 +44,22 @@
       }
     },
     "/{target}": {
+      "get": {
+        "summary": "Show information about the specified vSphere resources",
+        "description": "Making a `GET` request on a vSphere target will return information about the state of the host firewall on those resources.",
+        "parameters": [
+          { "$ref": "#/parameters/target" },
+          { "$ref": "#/parameters/computeResource" },
+          { "$ref": "#/parameters/thumbprint" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/responses/target" },
+          "default": { "$ref": "#/responses/error" }
+        }
+      },
       "post": {
         "summary": "Perform an action on the specified vSphere resources",
-        "operationId": "",
+        "description": "Making a `POST` request on a vSphere target with an action of `firewall:allow` or `firewall:deny` will update the host firewall on those resources.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/computeResource" },
@@ -60,6 +75,7 @@
     "/{target}/vch": {
       "get": {
         "summary": "List VCHs on the target system",
+        "description": "Making a `GET` request on `/vch` under a target will return information about the VCHs on that target.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/computeResource" },
@@ -72,6 +88,7 @@
       },
       "post": {
         "summary": "Create a VCH on the target system",
+        "description": "Making a `POST` request on `/vch` under a target will create a VCH on that target. Information about the VCH will be provided in the body of the request. Note that validation of the request will occur synchronously, with any errors being returned using an appropriate response code and status. The rest of creation will proceed asynchronously, with errors being reported via a vSphere task that is returned once the synchronous validation is complete.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/vch" },
@@ -86,6 +103,7 @@
     "/{target}/vch/{vchId}": {
       "get": {
         "summary": "Get information about the target VCH",
+        "description": "Making a `GET` request on a VCH resource will return information about the VCH. Information about the VCH will be provided in the body of the response in the same format as create.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/vch-id" },
@@ -98,6 +116,7 @@
       },
       "put": {
         "summary": "Reconfigure the target VCH",
+        "description": "Making a `PUT` request on a VCH resource will update that VCH's configuration. Information about the VCH will be provided in the body of the request in the same format as create. Fields which cannot be modified may appear in the body of a `PUT` as long as the value of those fields match the current state of the object. When the value of a field which cannot be modified does not match the current state, a `409 Conflict` will be returned.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/vch-id" },
@@ -111,6 +130,7 @@
       },
       "patch": {
         "summary": "Reconfigure the target VCH",
+        "description": "Making a `PATCH` request on a VCH resource (with a body as described in RFC 7396) will update a subset of that VCH's configuration. As `PATCH` is an explicit request to update a set of fields, fields which cannot be modified must not appear in the body of the `PATCH` request, even if the modification would be a no-op.",
         "consumes": [
           "application/merge-patch+json"
         ],
@@ -127,6 +147,7 @@
       },
       "post": {
         "summary": "Perform an action on the target VCH",
+        "description": "Making a `POST` request on a VCH resource with an action of `upgrade` will initiate an upgrade of the VCH. The body of the request will be a JSON object containing the following optional properties: `bootstrap-iso` (a reference to a known bootstrap ISO on the OVA) and `rollback` (a boolean value).",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/vch-id" },
@@ -140,6 +161,7 @@
       },
       "delete": {
         "summary": "Delete the target VCH",
+        "description": "Making a `DELETE` request on a VCH resource will delete that VCH.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/vch-id" },
@@ -152,9 +174,23 @@
       }
     },
     "/{target}/datacenter/{datacenter}": {
+      "get": {
+        "summary": "Show information about the specified vSphere resources",
+        "description": "Making a `GET` request on a datacenter will return information about the state of the host firewall on those resources.",
+        "parameters": [
+          { "$ref": "#/parameters/target" },
+          { "$ref": "#/parameters/datacenter" },
+          { "$ref": "#/parameters/computeResource" },
+          { "$ref": "#/parameters/thumbprint" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/responses/target" },
+          "default": { "$ref": "#/responses/error" }
+        }
+      },
       "post": {
         "summary": "Perform an action on the specified vSphere resources",
-        "operationId": "",
+        "description": "Making a `POST` request on a datacenter with an action of `firewall:allow` or `firewall:deny` will update the host firewall on those resources.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -171,6 +207,7 @@
     "/{target}/datacenter/{datacenter}/vch": {
       "get": {
         "summary": "List VCHs in the specified datacenter of the target system",
+        "description": "Making a `GET` request on `/vch` under a datacenter will return information about the VCHs in that datacenter.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -184,6 +221,7 @@
       },
       "post": {
         "summary": "Create a VCH on the target system",
+        "description": "Making a `POST` request on `/vch` under a datacenter will create a VCH in that datacenter. Information about the VCH will be provided in the body of the request. Note that validation of the request will occur synchronously, with any errors being returned using an appropriate response code and status. The rest of creation will proceed asynchronously, with errors being reported via a vSphere task that is returned once the synchronous validation is complete.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -199,6 +237,7 @@
     "/{target}/datacenter/{datacenter}/vch/{vchId}": {
       "get": {
         "summary": "Get information about the target VCH",
+        "description": "Making a `GET` request on a VCH resource will return information about the VCH. Information about the VCH will be provided in the body of the response in the same format as create.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -212,6 +251,7 @@
       },
       "put": {
         "summary": "Reconfigure the target VCH",
+        "description": "Making a `PUT` request on a VCH resource will update that VCH's configuration. Information about the VCH will be provided in the body of the request in the same format as create. Fields which cannot be modified may appear in the body of a `PUT` as long as the value of those fields match the current state of the object. When the value of a field which cannot be modified does not match the current state, a `409 Conflict` will be returned.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -226,6 +266,7 @@
       },
       "patch": {
         "summary": "Reconfigure the target VCH",
+        "description": "Making a `PATCH` request on a VCH resource (with a body as described in RFC 7396) will update a subset of that VCH's configuration. As `PATCH` is an explicit request to update a set of fields, fields which cannot be modified must not appear in the body of the `PATCH` request, even if the modification would be a no-op.",
         "consumes": [
           "application/merge-patch+json"
         ],
@@ -243,6 +284,7 @@
       },
       "post": {
         "summary": "Perform an action on the target VCH",
+        "description": "Making a `POST` request on a VCH resource with an action of `upgrade` will initiate an upgrade of the VCH. The body of the request will be a JSON object containing the following optional properties: `bootstrap-iso` (a reference to a known bootstrap ISO on the OVA) and `rollback` (a boolean value).",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -257,6 +299,7 @@
       },
       "delete": {
         "summary": "Delete the target VCH",
+        "description": "Making a `DELETE` request on a VCH resource will delete that VCH.",
         "parameters": [
           { "$ref": "#/parameters/target" },
           { "$ref": "#/parameters/datacenter" },
@@ -925,6 +968,17 @@
         "properties": {
           "version": { "$ref": "#/definitions/Version" },
           "bootstrap-images": { "$ref": "#/definitions/Bootstrap_Image_List" }
+        }
+      }
+    },
+    "target": {
+      "description": "A vSphere target (TODO)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "firewall-status": {
+            "type": "boolean"
+          }
         }
       }
     },

@@ -13,11 +13,13 @@
 # limitations under the License
 
 *** Settings ***
-Documentation  Test 23-06 - VCH Certificate
-Resource  ../../resources/Util.robot
-Suite Setup  Start VIC Machine Server
-Suite Teardown  Terminate All Processes  kill=True
+Documentation	Test 23-06 - VCH Certificate
+Resource	../../resources/Util.robot
+Resource	Util.robot
+Suite Setup	Start VIC Machine Server
+Suite Teardown	Terminate All Processes  kill=True
 Default Tags
+
 
 *** Keywords ***
 Install VIC Machine Without TLS
@@ -42,62 +44,55 @@ Install VIC Machine Without TLS
 
     [Return]  ${output}
 
-Start VIC Machine Server
-    Start Process  ./bin/vic-machine-server --port 31337  shell=True  cwd=/go/src/github.com/vmware/vic
 
-Curl No Datacenter
-    [Arguments]  ${vch-id}  ${auth}
-    ${rc}  ${output}=  Run And Return Rc And Output  curl -s -w "\%{http_code}\n" -X GET "http://127.0.0.1:31337/container/target/%{TEST_URL}/vch/${vch-id}/certificate?thumbprint=%{TEST_THUMBPRINT}" -H "authorization: Basic ${auth}"
-    [Return]  ${rc}  ${output}
+Get Certificate
+    [Arguments]  ${vch-id}
+    Get Path Under Target    vch/${vch-id}
 
-Curl Datacenter
-    [Arguments]  ${vch-id}  ${auth}
+
+Get Certificate Within Datacenter
+    [Arguments]  ${vch-id}
     ${orig}=  Get Environment Variable  TEST_DATACENTER
     ${dc}=  Run Keyword If  '%{TEST_DATACENTER}' == '${SPACE}'  Get Datacenter Name
     Run Keyword If  '%{TEST_DATACENTER}' == '${SPACE}'  Set Environment Variable  TEST_DATACENTER  ${dc}
-    ${rc}  ${output}=  Run And Return Rc And Output  curl -s -w "\%{http_code}\n" -X GET "http://127.0.0.1:31337/container/target/%{TEST_URL}/datacenter/%{TEST_DATACENTER}/vch/${vch-id}/certificate?thumbprint=%{TEST_THUMBPRINT}" -H "authorization: Basic ${auth}"
+    Get Path Under Target    datacenter/%{TEST_DATACENTER}/vch/${vch-id}
     Set Environment Variable  TEST_DATACENTER  ${orig}
-    [Return]  ${rc}  ${output}
+
+
+Verify Certificate
+    Should Contain      ${OUTPUT}    BEGIN CERTIFICATE
+    Should Contain      ${OUTPUT}    END CERTIFICATE
+    Should Not Contain  ${OUTPUT}    "
+
 
 *** Test Cases ***
 Get VCH Certificate
     Install VIC Appliance To Test Server
     ${id}=  Get VCH ID  %{VCH-NAME}
-    ${auth}=  Evaluate  base64.b64encode("%{TEST_USERNAME}:%{TEST_PASSWORD}")  modules=base64
-    ${rc}  ${output}=  Curl No Datacenter  ${id}  ${auth}
-    Should Be Equal As Integers  ${rc}  0
-    Should Contain  ${output}  BEGIN CERTIFICATE
-    Should Contain  ${output}  END CERTIFICATE
-    ${rc}  ${outputDC}=  Curl Datacenter  ${id}  ${auth}
-    Should Be Equal As Integers  ${rc}  0
-    Should Contain  ${output}  BEGIN CERTIFICATE
-    Should Contain  ${output}  END CERTIFICATE
-    Should Be Equal  ${output}  ${outputDC}
-    Should Not Contain  ${output}  "
-    Should Not Contain  ${outputDC}  "
-    ${status}=  Get Line  ${output}  -1
-    ${statusDC}=  Get Line  ${outputDC}  -1
-    Should Be Equal As Integers  200  ${status}
-    Should Be Equal As Integers  200  ${statusDC}
+
+    Get Certificate ${id}
+    Verify Return Code
+    Verify Status Ok
+    Verify Certificate
+
+    Get Certificate Within Datacenter ${id}
+    Verify Return Code
+    Verify Status Ok
+    Verify Certificate
+
     Cleanup VIC Appliance On Test Server
+
 
 Get VCH Certificate No TLS
     Install VIC Machine Without TLS
     ${id}=  Get VCH ID  %{VCH-NAME}
-    ${auth}=  Evaluate  base64.b64encode("%{TEST_USERNAME}:%{TEST_PASSWORD}")  modules=base64
-    ${rc}  ${output}=  Curl No Datacenter  ${id}  ${auth}
-    Should Be Equal As Integers  ${rc}  0
-    Should Not Contain  ${output}  BEGIN CERTIFICATE
-    Should Not Contain  ${output}  END CERTIFICATE
-    ${rc}  ${outputDC}=  Curl Datacenter  ${id}  ${auth}
-    Should Be Equal As Integers  ${rc}  0
-    Should Not Contain  ${output}  BEGIN CERTIFICATE
-    Should Not Contain  ${output}  END CERTIFICATE
-    Should Contain  ${output}  No certificate found for VCH
-    Should Contain  ${outputDC}  No certificate found for VCH
-    Should Be Equal  ${output}  ${outputDC}
-    ${status}=  Get Line  ${output}  -1
-    ${statusDC}=  Get Line  ${outputDC}  -1
-    Should Be Equal As Integers  404  ${status}
-    Should Be Equal As Integers  404  ${status}
+
+    Get Certificate ${id}
+    Verify Return Code
+    Verify Status 404
+
+    Get Certificate Within Datacenter ${id}
+    Verify Return Code
+    Verify Status 404
+
     Cleanup VIC Appliance On Test Server

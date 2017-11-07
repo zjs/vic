@@ -16,11 +16,14 @@ package restapi
 
 import (
 	"crypto/tls"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 	"github.com/rs/cors"
 	"github.com/tylerb/graceful"
 
@@ -32,19 +35,36 @@ import (
 
 //go:generate swagger generate server --target ../lib/apiservers/service --name  --spec ../lib/apiservers/service/swagger.json --exclude-main
 
+var logging = struct {
+	Directory string `long:"log-directory" description:"the directory to write server logs" default:"/var/log/vic-machine-server/" env:"LOG_DIRECTORY"`
+}{}
+
+var logger *log.Logger
+
 func configureFlags(api *operations.VicMachineAPI) {
-	// api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{ ... }
+	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
+		swag.CommandLineOptionsGroup{
+			ShortDescription: "Logging Options",
+			LongDescription: "",
+			Options: &logging,
+		},
+	}
 }
 
 func configureAPI(api *operations.VicMachineAPI) http.Handler {
 	// configure the api here
 	api.ServeError = errors.ServeError
 
-	// Set your custom logger if needed. Default one is log.Printf
-	// Expected interface func(string, ...interface{})
-	//
-	// Example:
-	// s.api.Logger = log.Printf
+	output := logging.Directory + "/vic-machine-server.log"
+	file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("Failed to open log file", output, ":", err)
+	}
+
+	logger = log.New(file, "", log.Ldate|log.Ltime|log.Lshortfile)
+
+	api.Logger = logger.Printf
+
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
@@ -182,5 +202,46 @@ func setupGlobalMiddleware(handler http.Handler) http.Handler {
 		AllowCredentials: false,
 	})
 
-	return c.Handler(handler)
+	return addLogging(c.Handler(handler))
+}
+
+func addLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mrw := NewMyResponseWriter(w)
+		next.ServeHTTP(mrw, r)
+		logger.Println("request:", mrw.status, r.Method, r.URL)
+	})
+}
+
+// https://gist.github.com/ciaranarcher/abccf50cb37645ca27fa
+// Maybe https://github.com/felixge/httpsnoop#why-this-package-exists is better?
+type MyResponseWriter struct {
+	http.ResponseWriter
+	status      int
+	wroteHeader bool
+}
+
+func NewMyResponseWriter(w http.ResponseWriter) *MyResponseWriter {
+	return &MyResponseWriter{ResponseWriter: w}
+}
+
+func (w *MyResponseWriter) Status() int {
+	return w.status
+}
+
+func (w *MyResponseWriter) Write(p []byte) (n int, err error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(p)
+}
+
+func (w *MyResponseWriter) WriteHeader(code int) {
+	w.ResponseWriter.WriteHeader(code)
+	// Check after in case there's error handling in the wrapped ResponseWriter.
+	if w.wroteHeader {
+		return
+	}
+	w.status = code
+	w.wroteHeader = true
 }

@@ -17,7 +17,10 @@ package vchlog
 import (
 	"bytes"
 	"io"
+	"runtime"
 	"sync"
+
+	"github.com/Sirupsen/logrus"
 )
 
 // BufferedPipe struct implements a pipe readwriter with buffer
@@ -53,10 +56,21 @@ func (bp *BufferedPipe) Read(data []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 	for bp.buffer.Len() == 0 && !bp.closed {
+		logrus.Debugf("Waiting for more data to read.")
 		bp.c.Wait()
+		logrus.Debugf("Done waiting.")
 	}
 
-	return bp.buffer.Read(data)
+	logrus.Debugf("Being asked to read %d of %d", len(data), bp.buffer.Len())
+
+	n, err = bp.buffer.Read(data)
+	if err == nil {
+		logrus.Debugf("Read %d (no error)", n)
+	} else {
+		logrus.Errorf("Read %d (%s)", n, err)
+	}
+
+	return
 }
 
 // Write writes to the internal buffer, and signals one of the reader in queue to start reading.
@@ -66,6 +80,9 @@ func (bp *BufferedPipe) Write(data []byte) (n int, err error) {
 	defer bp.c.Signal()
 
 	if bp.closed {
+		buf := make([]byte, 4096)
+		bytes := runtime.Stack(buf, false)
+		logrus.Errorf("Write called on BufferedPipe after it was closed: %s\n%s", string(data), string(buf[:bytes]))
 		return 0, io.ErrUnexpectedEOF
 	}
 
@@ -78,5 +95,10 @@ func (bp *BufferedPipe) Close() (err error) {
 	defer bp.c.L.Unlock()
 	defer bp.c.Signal()
 	bp.closed = true
+
+	buf := make([]byte, 4096)
+	bytes := runtime.Stack(buf, false)
+	logrus.Debugf("Close called on BufferedPipe:\n%s", string(buf[:bytes]))
+
 	return nil
 }

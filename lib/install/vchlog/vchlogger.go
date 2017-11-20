@@ -17,6 +17,8 @@ package vchlog
 import (
 	"path"
 
+	"github.com/Sirupsen/logrus"
+
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/vic/pkg/trace"
 )
@@ -60,7 +62,9 @@ func (l *VCHLogger) Run() {
 	sig := <-l.signalChan
 	// suffix the log file name with caller operation ID and timestamp
 	logFileName := "vic-machine" + "_" + sig.Timestamp + "_" + sig.Name + "_" + sig.Operation.ID() + ".log"
-	sig.Datastore.Upload(sig.Operation.Context, l.pipe, path.Join(sig.VMPathName, logFileName), nil)
+	err := sig.Datastore.Upload(sig.Operation.Context, l.pipe, path.Join(sig.VMPathName, logFileName), nil)
+
+	logrus.Errorf("Error writing to datastore: %s", err)
 }
 
 // GetPipe returns the streaming pipe of the vch logger

@@ -128,9 +128,7 @@ func configureAPI(api *operations.VicMachineAPI) http.Handler {
 	})
 
 	// POST /container/target/{target}/vch/{vch-id}
-	api.PostTargetTargetVchVchIDHandler = operations.PostTargetTargetVchVchIDHandlerFunc(func(params operations.PostTargetTargetVchVchIDParams, principal interface{}) middleware.Responder {
-		return middleware.NotImplemented("operation .PostTargetTargetVchVchID has not yet been implemented")
-	})
+	api.PostTargetTargetVchVchIDHandler = &handlers.VCHAction{}
 
 	// DELETE /container/target/{target}/vch/{vch-id}
 	api.DeleteTargetTargetVchVchIDHandler = &handlers.VCHDelete{}
@@ -160,9 +158,7 @@ func configureAPI(api *operations.VicMachineAPI) http.Handler {
 	})
 
 	// POST /container/target/{target}/datacenter/{datacenter}/vch/{vch-id}
-	api.PostTargetTargetDatacenterDatacenterVchVchIDHandler = operations.PostTargetTargetDatacenterDatacenterVchVchIDHandlerFunc(func(params operations.PostTargetTargetDatacenterDatacenterVchVchIDParams, principal interface{}) middleware.Responder {
-		return middleware.NotImplemented("operation .PostTargetTargetDatacenterDatacenterVchVchID has not yet been implemented")
-	})
+	api.PostTargetTargetDatacenterDatacenterVchVchIDHandler = &handlers.VCHDatacenterAction{}
 
 	// DELETE /container/target/{target}/datacenter/{datacenter}/vch/{vch-id}
 	api.DeleteTargetTargetDatacenterDatacenterVchVchIDHandler = &handlers.VCHDatacenterDelete{}

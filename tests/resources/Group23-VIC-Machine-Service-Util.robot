@@ -69,6 +69,12 @@ Delete Path Under Target
     Set Test Variable    ${STATUS}
 
 
+Get VCH ID ${name}
+    Get Path Under Target    vch
+    ${id}=    Run    echo '${OUTPUT}' | jq -r '.vchs[] | select(.name=="${name}").id'
+    [Return]    ${id}
+
+
 Verify Return Code
     Should Be Equal As Integers    ${RC}    0
 

@@ -48,12 +48,6 @@ Re-Install And Prepare VIC Appliance With Volume Stores
     Pull Busybox
 
 
-Get VCH ID ${name}
-    Get Path Under Target    vch
-    ${id}=    Run    echo '${OUTPUT}' | jq -r '.vchs[] | select(.name=="${name}").id'
-    [Return]    ${id}
-
-
 Run Docker Command
     [Arguments]    ${command}
 

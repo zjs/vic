@@ -91,3 +91,21 @@ func (v *Validator) AssertVersion(ctx context.Context, conf *config.VirtualConta
 	}
 	return nil
 }
+
+// TODO: de-duplicate with AssertVersion
+func (v *Validator) AssertVersionForAPI(ctx context.Context, conf *config.VirtualContainerHostConfigSpec) (err error) {
+	defer trace.End(trace.Begin("", ctx))
+
+	if conf.Version == nil {
+		return errors.Errorf("Unknown version of VCH %q", conf.Name)
+	}
+	var older bool
+	installerBuild := version.GetBuild()
+	if older, err = conf.Version.IsOlder(installerBuild); err != nil {
+		return errors.Errorf("Failed to compare VCH version %q with installer version %q: %s", conf.Version.ShortVersion(), installerBuild.ShortVersion(), err)
+	}
+	if !older {
+		return errors.Errorf("%q has same or newer version %s than installer version %s. No upgrade is available.", conf.Name, conf.Version.ShortVersion(), installerBuild.ShortVersion())
+	}
+	return nil
+}

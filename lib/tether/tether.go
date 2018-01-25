@@ -27,6 +27,7 @@ import (
 	"path"
 	"runtime/debug"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -806,6 +807,42 @@ func (t *tether) launch(session *SessionConfig) error {
 	}
 	log.Debugf("Resolved %s to %s", session.Cmd.Path, resolved)
 	session.Cmd.Path = resolved
+
+	// [HACK]: Defer cleanup
+	if _, err := os.Stat("config.json"); err == nil {
+		panic("hacky code should not be overwriting files")
+	}
+
+	defer os.Remove("config.json")
+
+	// [HACK]: Write runc config
+	specCmd := exec.Command("/usr/sbin/runc", "spec")
+	err = specCmd.Start()
+	if err != nil {
+		panic("error generating spec") // TODO[HACK]: handle errors
+	}
+
+	// [HACK]: Tell runc to run `resolved`
+	setCmd := exec.Command("/bin/bash", "-c", "cat config.json | jq '.process.args = [\"" + strings.Join(session.Cmd.Args, "\",\"") + "\"]' > config.json.updated") // TODO[HACK]: 😂
+	err = setCmd.Start()
+	if err != nil {
+		panic("error setting binary") // TODO[HACK]: handle errors
+	}
+
+	os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
+
+	// [HACK]: Tell runc the rootfs is in the parent directory
+	setRootFS := exec.Command("/bin/bash", "-c", "cat config.json | jq '.root.path = \"../\"' > config.json.updated") // TODO[HACK]: 😂
+	err = setRootFS.Start()
+	if err != nil {
+		panic("error setting rootfs") // TODO[HACK]: handle errors
+	}
+
+	os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
+
+	// [HACK]: Replace `session.Cmd.Path` with `runc run`
+	session.Cmd.Path = "/usr/sbin/runc"
+	session.Cmd.Args = []string{"run", "-b", ".", session.Name}
 
 	// block until we have a connection
 	if session.RunBlock && session.ClearToLaunch != nil {

@@ -813,39 +813,52 @@ func (t *tether) launch(session *SessionConfig) error {
 		log.Debugf("[HACK] RUNC CODEPATH")
 
 		// [HACK]: Defer cleanup
-		if _, err := os.Stat("config.json"); err == nil {
+		if _, err := os.Stat("/.tether/config.json"); err == nil {
 			panic("hacky code should not be overwriting files")
 		}
 
-		defer os.Remove("config.json")
+		defer os.Remove("/.tether/config.json")
 
 		// [HACK]: Write runc config
 		specCmd := exec.Command("/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/.tether/lib", "/.tether/runc", "spec")
+		specCmd.Dir = "/.tether/"
 		err = specCmd.Start()
 		if err != nil {
 			panic("error generating spec") // TODO[HACK]: handle errors
 		}
 
 		// [HACK]: Tell runc to run `resolved`
-		setCmd := exec.Command("/bin/sh", "-c", "cat config.json | jq '.process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"]' > config.json.updated") // TODO[HACK]: 😂
+		setCmd := exec.Command("/bin/sh", "-c", "cat /.tether/config.json | jq '.process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"]' > /.tether/config.json.updated") // TODO[HACK]: 😂
+		setCmd.Dir = "/.tether/"
 		err = setCmd.Start()
 		if err != nil {
 			panic("error setting binary") // TODO[HACK]: handle errors
 		}
 
-		os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
+		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
+
+		// [HACK]: Tell runc what CWD to use
+		setCWD := exec.Command("/bin/sh", "-c", "cat /.tether/config.json | jq '.process.cwd = \"" + session.Cmd.Dir + "\"' > /.tether/config.json.updated") // TODO[HACK]: 😂
+		setCWD.Dir = "/.tether/"
+		err = setCWD.Start()
+		if err != nil {
+			panic("error setting cwd") // TODO[HACK]: handle errors
+		}
+
+		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
 
 		// [HACK]: Tell runc the rootfs is in the parent directory
-		setRootFS := exec.Command("/bin/sh", "-c", "cat config.json | jq '.root.path = \"../\"' > config.json.updated") // TODO[HACK]: 😂
+		setRootFS := exec.Command("/bin/sh", "-c", "cat /.tether/config.json | jq '.root.path = \"../\"' > /.tether/config.json.updated") // TODO[HACK]: 😂
+		setRootFS.Dir = "/.tether/"
 		err = setRootFS.Start()
 		if err != nil {
 			panic("error setting rootfs") // TODO[HACK]: handle errors
 		}
 
-		os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
+		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
-		session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/.tether/lib", "/.tether/runc", "run", "-b", ".", session.Name}
+		session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/.tether/lib", "/.tether/runc", "run", "-b", "/.tether/", session.Name}
 		session.Cmd.Path = session.Cmd.Args[0]
 	} else {
 		log.Debugf("[HACK] :-(")

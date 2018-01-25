@@ -113,6 +113,108 @@ func TestExec(t *testing.T) {
 	<-mocker.Cleaned
 }
 
+func TestMultiExec(t *testing.T) {
+	_, mocker := testSetup(t)
+
+	defer testTeardown(t, mocker)
+
+	dir, err := ioutil.TempDir("", "tetherTestMultiExec")
+	if !assert.Nil(t, err, "Unable to create temp file") {
+		t.FailNow()
+	}
+
+	flagFile := path.Join(dir, "flagfile")
+	defer os.RemoveAll(flagFile)
+
+	cfg := executor.ExecutorConfig{
+		ExecutorConfigCommon: executor.ExecutorConfigCommon{
+			ID:   "primary",
+			Name: "tether_test_executor",
+		},
+
+		Sessions: map[string]*executor.SessionConfig{
+			"primary": {
+				Common: executor.Common{
+					ID:   "primary",
+					Name: "tether_test_session",
+				},
+				Tty:       true,
+				Active:    true,
+				OpenStdin: true,
+
+				Cmd: executor.Cmd{
+					// test abs path
+					Path: "/bin/bash",
+					Args: []string{"/bin/bash", "-c", fmt.Sprintf("until /usr/bin/test -e %s;do /bin/sleep 0.1;done", flagFile)},
+					Env:  []string{},
+					Dir:  "/",
+				},
+			},
+			"secondary": {
+				Common: executor.Common{
+					ID:   "secondary",
+					Name: "tether_test_session_2",
+				},
+				Tty:       true,
+				Active:    true,
+				OpenStdin: true,
+
+				Cmd: executor.Cmd{
+					// test abs path
+					Path: "/bin/bash",
+					Args: []string{"/bin/bash", "-c", fmt.Sprintf("until /usr/bin/test -e %s;do /bin/sleep 0.1;done", flagFile)},
+					Env:  []string{},
+					Dir:  "/",
+				},
+			},
+		},
+	}
+
+	tthr, src, sink := StartTether(t, &cfg, mocker)
+
+	<-mocker.Started
+
+	// at this point the primary process should be up and running, so grab the pid
+	result := ExecutorConfig{}
+	extraconfig.Decode(src, &result)
+
+	for result.Sessions["primary"].Started != "true" || result.Sessions["secondary"].Started != "true" {
+		time.Sleep(200 * time.Millisecond)
+		extraconfig.Decode(src, &result)
+	}
+
+	// configure a command to kill the primary
+	cfg.Execs = map[string]*executor.SessionConfig{
+		"touch": {
+			Common: executor.Common{
+				ID:   "touch",
+				Name: "tether_test_session",
+			},
+			Tty:    false,
+			Active: true,
+
+			Cmd: executor.Cmd{
+				// test abs path
+				Path: "/bin/touch",
+				Args: []string{"touch", flagFile},
+				Env:  []string{},
+				Dir:  "/",
+			},
+		},
+	}
+
+	// update the active config
+	extraconfig.Encode(sink, cfg)
+
+	// trigger tether reload
+	tthr.Reload()
+
+	<-mocker.Reloaded
+
+	// block until tether exits - exit within test timeout is a pass given the pairing of processes in the test
+	<-mocker.Cleaned
+}
+
 func TestMissingBinaryNonFatal(t *testing.T) {
 	_, mocker := testSetup(t)
 

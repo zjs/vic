@@ -137,6 +137,7 @@ func TestMultiExec(t *testing.T) {
 				Common: executor.Common{
 					ID:   "primary",
 					Name: "tether_test_session",
+					ExecutionEnvironment: "runc",
 				},
 				Tty:       true,
 				Active:    true,
@@ -154,6 +155,7 @@ func TestMultiExec(t *testing.T) {
 				Common: executor.Common{
 					ID:   "secondary",
 					Name: "tether_test_session_2",
+					ExecutionEnvironment: "runc",
 				},
 				Tty:       true,
 				Active:    true,

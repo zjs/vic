@@ -809,7 +809,9 @@ func (t *tether) launch(session *SessionConfig) error {
 	session.Cmd.Path = resolved
 
 	// [HACK]: This is a terrible condition; better to express this as a configurable attribute of a session(?)
-	if _, err := os.Stat("/usr/sbin/runc"); err == nil {
+	if session.ExecutionEnvironment == "runc" { // TODO[HACK]: extract constant
+		log.Debugf("[HACK] RUNC CODEPATH")
+
 		// [HACK]: Defer cleanup
 		if _, err := os.Stat("config.json"); err == nil {
 			panic("hacky code should not be overwriting files")
@@ -818,14 +820,14 @@ func (t *tether) launch(session *SessionConfig) error {
 		defer os.Remove("config.json")
 
 		// [HACK]: Write runc config
-		specCmd := exec.Command("/usr/sbin/runc", "spec")
+		specCmd := exec.Command("/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/.tether/lib", "/.tether/runc", "spec")
 		err = specCmd.Start()
 		if err != nil {
 			panic("error generating spec") // TODO[HACK]: handle errors
 		}
 
 		// [HACK]: Tell runc to run `resolved`
-		setCmd := exec.Command("/bin/bash", "-c", "cat config.json | jq '.process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"]' > config.json.updated") // TODO[HACK]: 😂
+		setCmd := exec.Command("/bin/sh", "-c", "cat config.json | jq '.process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"]' > config.json.updated") // TODO[HACK]: 😂
 		err = setCmd.Start()
 		if err != nil {
 			panic("error setting binary") // TODO[HACK]: handle errors
@@ -834,7 +836,7 @@ func (t *tether) launch(session *SessionConfig) error {
 		os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
 
 		// [HACK]: Tell runc the rootfs is in the parent directory
-		setRootFS := exec.Command("/bin/bash", "-c", "cat config.json | jq '.root.path = \"../\"' > config.json.updated") // TODO[HACK]: 😂
+		setRootFS := exec.Command("/bin/sh", "-c", "cat config.json | jq '.root.path = \"../\"' > config.json.updated") // TODO[HACK]: 😂
 		err = setRootFS.Start()
 		if err != nil {
 			panic("error setting rootfs") // TODO[HACK]: handle errors
@@ -843,8 +845,10 @@ func (t *tether) launch(session *SessionConfig) error {
 		os.Rename("config.json.updated", "config.json") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
-		session.Cmd.Path = "/usr/sbin/runc"
-		session.Cmd.Args = []string{"run", "-b", ".", session.Name}
+		session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/.tether/lib", "/.tether/runc", "run", "-b", ".", session.Name}
+		session.Cmd.Path = session.Cmd.Args[0]
+	} else {
+		log.Debugf("[HACK] :-(")
 	}
 
 	// block until we have a connection

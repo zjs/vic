@@ -57,7 +57,7 @@ const (
 // Common data between managed entities, across execution environments
 type Common struct {
 	// A reference to the components hosting execution environment, if any
-	ExecutionEnvironment string
+	ExecutionEnvironment string `vic:"0.1" scope:"read-only"`
 
 	// Unambiguous ID with meaning in the context of its hosting execution environment. Changing this definition will cause container backward compatibility issue. Please don't change this.
 	ID string `vic:"0.1" scope:"read-only" key:"id"`

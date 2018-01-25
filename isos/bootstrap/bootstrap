@@ -41,7 +41,8 @@ if timeout --signal=KILL 2m mount -t ext4 /dev/disk/by-label/containerfs ${MOUNT
     # WARNING WARNING WARNING WARNING WARNING
     # if the tmpfs is not large enough odd hangs can occur and the ESX event log will
     # report the guest disabling the CPU
-    mount -t tmpfs -o size=64m tmpfs ${MOUNTPOINT}/.tether/
+    # [HACK] increase size arbitrarily
+    mount -t tmpfs -o size=128m tmpfs ${MOUNTPOINT}/.tether/
 
     # enable full system functionality in the container
     ln -s lib64 ${MOUNTPOINT}/.tether/lib
@@ -94,6 +95,10 @@ if timeout --signal=KILL 2m mount -t ext4 /dev/disk/by-label/containerfs ${MOUNT
     iptables -A INPUT -i lo -j ACCEPT
     iptables -A OUTPUT -o lo -j ACCEPT
     iptables -A FORWARD -i lo -o lo -j ACCEPT
+
+    # [HACK] Copy runc from bootstrap.iso into tempfs
+    cp -a /usr/lib/libseccomp.* ${MOUNTPOINT}/.tether/lib
+    cp /usr/sbin/runc ${MOUNTPOINT}/.tether/
 
     echo 'tether tmpfs size after copying libraries: '
     df -k ${MOUNTPOINT}/.tether

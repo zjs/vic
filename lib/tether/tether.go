@@ -828,8 +828,22 @@ func (t *tether) launch(session *SessionConfig) error {
 			panic("error generating spec") // TODO[HACK]: handle errors
 		}
 
+		in, err := os.Open("/.tether/config.json")
+		if err != nil {
+			log.Error(err)
+			panic("error creating config file to read from") // TODO[HACK]: handle errors
+		}
+
+		out, err := os.Create("/.tether/config.json.updated")
+		if err != nil {
+			log.Error(err)
+			panic("error creating config file to write to") // TODO[HACK]: handle errors
+		}
+
 		// [HACK]: Tell runc to run `resolved`, use the right CWD, and the right rootfs directory
-		updateConfig := exec.Command("/bin/sh", "-c", "/bin/sh -c 'cat /.tether/config.json | jq \\'.process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"] \\| .process.cwd = \"" + session.Cmd.Dir + "\" \\| .root.path = \"../\"'\\' > /.tether/config.json.updated") // TODO[HACK]: 😂
+        updateConfig := exec.Command("jq", ".process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"] | .process.cwd = \"" + session.Cmd.Dir + "\" | .root.path = \"../\"") // TODO[HACK]: 😂
+        updateConfig.Stdin = in
+        updateConfig.Stdout = out
 		updateConfig.Dir = "/.tether/"
 		log.Debug("[HACK] tweaking JSON: %q", updateConfig.Args)
 		err = updateConfig.Run()
@@ -838,7 +852,7 @@ func (t *tether) launch(session *SessionConfig) error {
 			panic("error updating config") // TODO[HACK]: handle errors
 		}
 
-		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
+		os.Rename("/.tether/config.json.updated", "/.tether/config.json.moved") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
 		//session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.Name}

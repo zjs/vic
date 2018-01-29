@@ -852,11 +852,12 @@ func (t *tether) launch(session *SessionConfig) error {
 			panic("error updating config") // TODO[HACK]: handle errors
 		}
 
-		os.Rename("/.tether/config.json.updated", "/.tether/config.json.moved") // [HACK]: Atomic update
+		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
-		//session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.Name}
-		//session.Cmd.Path = session.Cmd.Args[0]
+		session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.Name}
+		session.Cmd.Path = session.Cmd.Args[0]
+		session.Cmd.Dir = "/.tether/"
 	} else {
 		log.Debugf("[HACK] :-(")
 	}

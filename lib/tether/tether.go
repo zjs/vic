@@ -841,7 +841,12 @@ func (t *tether) launch(session *SessionConfig) error {
 		}
 
 		// [HACK]: Tell runc to run `resolved`, use the right CWD, and the right rootfs directory
-        updateConfig := exec.Command("jq", ".process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"] | .process.cwd = \"" + session.Cmd.Dir + "\" | .root.path = \"../\"") // TODO[HACK]: 😂
+		var updateConfig *exec.Cmd
+		if session.Cmd.Dir != "" {
+			updateConfig = exec.Command("/sbin/jq", ".process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"] | .process.cwd = \"" + session.Cmd.Dir + "\" | .root.path = \"../\"") // TODO[HACK]: 😂
+		} else {
+			updateConfig = exec.Command("/sbin/jq", ".process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"] | .root.path = \"../\"") // TODO[HACK]: 😂
+		}
         updateConfig.Stdin = in
         updateConfig.Stdout = out
 		updateConfig.Dir = "/.tether/"

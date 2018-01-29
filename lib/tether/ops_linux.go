@@ -1214,7 +1214,7 @@ func createBindSrcTarget(files map[string]os.FileMode) error {
 // process while in the presence of an embedded child reaper.
 // The function passed in will be launched under lock and MUST NOT wait for the process to
 // exit. It's expected the function be a closure wrapped around StartProcess or similar.
-func (t *BaseOperations) LaunchUtility(fn UtilityFn) (<-chan int, error) {
+func (t *BaseOperations) LaunchUtility(fn UtilityFn) (<-chan int, error) { // TODO[HACK]: use this for slightly-less-hacky code to avoid races with child reaper (and to simplify mocking for unit tests?)
 	return launchUtility(t, fn)
 }
 

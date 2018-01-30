@@ -841,7 +841,10 @@ func (t *tether) launch(session *SessionConfig) error {
 		}
 
 		// [HACK]: Tell runc to run `resolved`, use the right CWD, and the right rootfs directory
-		transformations := []string{".process.args = [\""+strings.Join(session.Cmd.Args, "\",\"")+"\"]", ".root.path = \"../\""}
+		transformations := []string{
+			".process.args = [\"" + strings.Join(session.Cmd.Args, "\",\"") + "\"]",
+			".root.path = \"../\"",
+		}
 		if session.Cmd.Dir != "" {
 			transformations = append(transformations, ".process.cwd = \"" + session.Cmd.Dir + "\"")
 		}

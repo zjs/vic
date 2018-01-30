@@ -850,7 +850,7 @@ func (t *tether) launch(session *SessionConfig) error {
         updateConfig.Stdin = in
         updateConfig.Stdout = out
 		updateConfig.Dir = "/.tether/"
-		log.Debug("[HACK] tweaking JSON: %q", updateConfig.Args)
+		log.Debugf("[HACK] tweaking JSON: %q", updateConfig.Args)
 		err = updateConfig.Run()
 		if err != nil {
 			log.Error(err)
@@ -860,9 +860,11 @@ func (t *tether) launch(session *SessionConfig) error {
 		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
-		session.Cmd.Args = []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.ID}
-		session.Cmd.Path = session.Cmd.Args[0]
-		session.Cmd.Dir = "/.tether/"
+		args := []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.ID[:16]}
+		log.Infof("[HACK] launching runc: %q", args)
+		//session.Cmd.Args = args
+		//session.Cmd.Path = session.Cmd.Args[0]
+		//session.Cmd.Dir = "/.tether/"
 	} else {
 		log.Debugf("[HACK] :-(")
 	}

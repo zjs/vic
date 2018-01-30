@@ -860,7 +860,13 @@ func (t *tether) launch(session *SessionConfig) error {
 		os.Rename("/.tether/config.json.updated", "/.tether/config.json") // [HACK]: Atomic update
 
 		// [HACK]: Replace `session.Cmd.Path` with `runc run`
-		args := []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc", "run", "-b", ".", session.ID[:16]}
+		id := session.ID[:16]
+
+		args := []string{"/.tether/lib/ld-linux-x86-64.so.2", "--library-path", "/lib:/usr/lib:/.tether/lib", "/.tether/runc"}
+		if t.config.DebugLevel > 0 {
+			args = append(args, "--debug", "--log", "runc." + id + ".log")
+		}
+		args = append(args, "run", id)
 		log.Infof("[HACK] launching runc: %q", args)
 		//session.Cmd.Args = args
 		//session.Cmd.Path = session.Cmd.Args[0]

@@ -871,9 +871,13 @@ func (t *tether) launch(session *SessionConfig) error {
 		}
 		args = append(args, "run", id)
 		log.Infof("[HACK] launching runc: %q", args)
-		//session.Cmd.Args = args
-		//session.Cmd.Path = session.Cmd.Args[0]
-		//session.Cmd.Dir = "/.tether/"
+		session.Cmd.Args = args
+		session.Cmd.Path = session.Cmd.Args[0]
+		session.Cmd.Dir = "/.tether/"
+
+		// Current failure:
+		// time="2018-01-30T00:27:48Z" level=warning msg="exit status 127"
+		// time="2018-01-30T00:27:48Z" level=error msg="container_linux.go:265: starting container process caused \"process_linux.go:247: copying bootstrap data to pipe caused \\"write init-p: broken pipe\\"\"
 	} else {
 		log.Debugf("[HACK] :-(")
 	}

@@ -71,10 +71,7 @@ func ProcessNetworks(op trace.Operation, d *data.Data, vch *models.VCH, finder c
 			}
 
 			// Process DNS server to be applied to all public, management and client network
-			d.DNS, err = processNameServers(op, vch.Network.Public.Nameservers)
-			if err != nil {
-				return errors.WrapError(http.StatusBadRequest, err)
-			}
+			d.DNS = FromIPAddresses(vch.Network.Public.Nameservers)
 
 			if len(d.DNS) > 3 {
 				op.Warn("Maximum of 3 DNS servers allowed. Additional servers specified will be ignored.")
@@ -156,10 +153,7 @@ func processContainerNetwork(op trace.Operation, finder client.Finder, cNetwork 
 	cNetworkConfig.MappedNetworksIPRanges[alias] = fromIPRanges(cNetwork.IPRanges)
 
 	// nameservers
-	dns, err := processNameServers(op, cNetwork.Nameservers)
-	if err != nil {
-		return fmt.Errorf("error parsing container network %s: %s", alias, err)
-	}
+	dns := FromIPAddresses(cNetwork.Nameservers)
 	cNetworkConfig.MappedNetworksDNS[alias] = dns
 
 	return nil
@@ -228,23 +222,6 @@ func processGateway(op trace.Operation, gateway *models.Gateway) (net.IP, *net.I
 	return addr, mask, nil
 }
 
-func processNameServers(op trace.Operation, nameServers []models.IPAddress) ([]net.IP, error) {
-	ips := make([]net.IP, 0, len(nameServers))
-	dns := FromIPAddresses(nameServers)
-
-	for i, n := range dns {
-		if n != "" {
-			s := net.ParseIP(n)
-			if s == nil {
-				return nil, fmt.Errorf("Invalid name server provided: %s", n)
-			}
-			ips[i] = s
-		}
-	}
-
-	return ips, nil
-}
-
 // parse gateway string to gateway IP and routing destinations
 // TODO [AngieCris]: complete duplicate of an util function in cmd/create (maybe no need to de-duplicate?)
 func parseGateway(gw string) (cidrs []net.IPNet, gwIP net.IPNet, err error) {
@@ -301,21 +278,22 @@ func FromCIDRs(m *[]models.CIDR) *[]string {
 	return &s
 }
 
-func FromIPAddress(m *models.IPAddress) string {
+func FromIPAddress(m *models.IPAddress) net.IP {
 	if m == nil {
-		return ""
+		return nil
 	}
 
-	return string(*m)
+	return net.ParseIP(string(*m))
 }
 
-func FromIPAddresses(m []models.IPAddress) []string {
-	s := make([]string, 0, len(m))
-	for _, ip := range m {
-		s = append(s, FromIPAddress(&ip))
+func FromIPAddresses(nameServers []models.IPAddress) []net.IP {
+	ips := make([]net.IP, 0, len(nameServers))
+
+	for i, n := range nameServers {
+		ips[i] = FromIPAddress(&n)
 	}
 
-	return s
+	return ips
 }
 
 func fromIPRanges(ipRanges []models.IPRange) []ip.Range {

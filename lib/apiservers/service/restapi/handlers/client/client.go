@@ -46,6 +46,7 @@ import (
 type Executor interface {
 	CreateVCH(conf *config.VirtualContainerHostConfigSpec, settings *data.InstallerData, receiver vchlog.Receiver) error
 	DeleteVCH(conf *config.VirtualContainerHostConfigSpec, containers *management.DeleteContainers, volumeStores *management.DeleteVolumeStores) error
+	Configure(conf *config.VirtualContainerHostConfigSpec, settings *data.InstallerData) error
 }
 
 type executor interface {

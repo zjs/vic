@@ -153,7 +153,7 @@ func processContainerNetwork(op trace.Operation, finder client.Finder, cNetwork 
 	}
 
 	// ip ranges
-	cNetworkConfig.MappedNetworksIPRanges[alias] = processIPRanges(op, cNetwork.IPRanges)
+	cNetworkConfig.MappedNetworksIPRanges[alias] = fromIPRanges(cNetwork.IPRanges)
 
 	// nameservers
 	dns, err := processNameServers(op, cNetwork.Nameservers)
@@ -245,16 +245,6 @@ func processNameServers(op trace.Operation, nameServers []models.IPAddress) ([]n
 	return ips, nil
 }
 
-func processIPRanges(op trace.Operation, ipRanges []models.IPRange) []ip.Range {
-	ranges := make([]ip.Range, 0, len(ipRanges))
-	for i, r := range ipRanges {
-		parsedR := ip.ParseRange(string(r))
-		ranges[i] = *parsedR
-	}
-
-	return ranges
-}
-
 // parse gateway string to gateway IP and routing destinations
 // TODO [AngieCris]: complete duplicate of an util function in cmd/create (maybe no need to de-duplicate?)
 func parseGateway(gw string) (cidrs []net.IPNet, gwIP net.IPNet, err error) {
@@ -326,6 +316,16 @@ func FromIPAddresses(m []models.IPAddress) []string {
 	}
 
 	return s
+}
+
+func fromIPRanges(ipRanges []models.IPRange) []ip.Range {
+	ranges := make([]ip.Range, 0, len(ipRanges))
+	for i, r := range ipRanges {
+		parsedR := ip.ParseRange(string(r))
+		ranges[i] = *parsedR
+	}
+
+	return ranges
 }
 
 func FromGateway(m *models.Gateway) string {
